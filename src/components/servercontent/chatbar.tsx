@@ -54,6 +54,7 @@ const ChatBar = () => {
           replayTo.message,
           replayTo.type
         );
+        setReplayTo(null);
       } else {
         submitNewMessage();
       }
