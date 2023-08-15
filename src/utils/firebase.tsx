@@ -19,6 +19,7 @@ import {
   where,
   updateDoc,
   arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import "firebase/firestore";
@@ -265,4 +266,142 @@ export const addUserInServer = async (id, newServer) => {
     .catch((error) => {
       console.error("Error checking channel document:", error);
     });
+};
+
+export const findUserByUserName = async (user) => {
+  const q = query(collection(db, "users"), where("userName", "==", user));
+  const querySnapshot = await getDocs(q);
+  const data = [];
+  querySnapshot.forEach((doc) => {
+    // doc.data() is never undefined for query doc snapshots
+    data.push(doc.data());
+  });
+  return data;
+};
+
+export const updateUserFriendRequests = async (id, obj) => {
+  // Reference to the specific channel document
+  const channelRef = doc(db, "users", id);
+
+  try {
+    // Reference to the specific server document using the serverId
+    const serverRef = doc(db, "users", id);
+
+    const serverSnapshot = await getDoc(channelRef);
+
+    if (serverSnapshot.exists()) {
+      // Update the "channels" array using the arrayUnion function
+      await updateDoc(serverRef, {
+        friendsRequests: arrayUnion(obj),
+      });
+
+      console.log("New channel added successfully!");
+    } else {
+      console.log("Server document does not exist.");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+  }
+};
+
+export const updateUserFriendRequestsPending = async (id, obj) => {
+  // Reference to the specific channel document
+  const channelRef = doc(db, "users", id);
+
+  try {
+    // Reference to the specific server document using the serverId
+    const serverRef = doc(db, "users", id);
+
+    const serverSnapshot = await getDoc(channelRef);
+
+    if (serverSnapshot.exists()) {
+      // Update the "channels" array using the arrayUnion function
+      await updateDoc(serverRef, {
+        friendsRequestsPending: arrayUnion(obj),
+      });
+
+      console.log("New channel added successfully!");
+    } else {
+      console.log("Server document does not exist.");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+  }
+};
+
+// Function to find user by ID
+export const findUserById = async (userId) => {
+  const userRef = doc(db, "users", userId);
+
+  try {
+    const userSnapshot = await getDoc(userRef);
+    if (userSnapshot.exists()) {
+      return userSnapshot.ref;
+    } else {
+      console.log("User not found.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error finding user:", error);
+    return null;
+  }
+};
+
+// Function to remove a specific element from an array
+export const removeObjectFromArray = async (userRef, arrayField, objectId) => {
+  try {
+    // Fetch the user's data
+    const userSnapshot = await getDoc(userRef);
+    if (userSnapshot.exists()) {
+      const userData = userSnapshot.data();
+
+      // Find the index of the object with the specified ID
+      const indexToRemove = userData[arrayField].findIndex(
+        (obj) => obj.userId === objectId
+      );
+
+      if (indexToRemove !== -1) {
+        // Remove the object from the array
+        userData[arrayField].splice(indexToRemove, 1);
+
+        // Update the document with the modified array
+        await updateDoc(userRef, {
+          [arrayField]: userData[arrayField],
+        });
+
+        console.log("Object removed successfully.");
+      } else {
+        console.log("Object with specified ID not found in the array.");
+      }
+    } else {
+      console.log("User document does not exist.");
+    }
+  } catch (error) {
+    console.error("Error removing object:", error);
+  }
+};
+
+export const addNewFriendInUsers = async (id, obj) => {
+  // Reference to the specific channel document
+  const channelRef = doc(db, "users", id);
+
+  try {
+    // Reference to the specific server document using the serverId
+    const serverRef = doc(db, "users", id);
+
+    const serverSnapshot = await getDoc(channelRef);
+
+    if (serverSnapshot.exists()) {
+      // Update the "channels" array using the arrayUnion function
+      await updateDoc(serverRef, {
+        userFriends: arrayUnion(obj),
+      });
+
+      console.log("New channel added successfully!");
+    } else {
+      console.log("Server document does not exist.");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+  }
 };

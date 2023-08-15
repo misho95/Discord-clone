@@ -14,7 +14,14 @@ import {
   getAllDataFromServer,
   userJoinServer,
   addUserInServer,
+  findUserByUserName,
   getServerUid,
+  updateUserFriendRequests,
+  updateUserFriendRequestsPending,
+  findUserById,
+  removeObjectFromArray,
+  addNewFriendInUsers,
+  getUserInfoFromDataBase,
 } from "../../utils/firebase";
 import Message from "./message";
 
@@ -129,6 +136,77 @@ const ChatBar = () => {
     setReplayTo({ id, img, type, userName, date, message });
   };
 
+  const sendFriendRequest = async () => {
+    const respons = await findUserByUserName(input);
+    if (respons) {
+      const findIfUserIsAlreadyFriend = respons.find((user) => {
+        return user.userFriends?.find((usr) => {
+          if (usr.id === currentUser.id) {
+            return usr;
+          }
+        });
+      });
+      if (!findIfUserIsAlreadyFriend) {
+        await updateUserFriendRequests(respons[0].id, {
+          id: v4(),
+          userId: currentUser.id,
+          userName: currentUser.userName,
+          accept: false,
+        });
+        await updateUserFriendRequestsPending(currentUser.id, {
+          id: v4(),
+          userId: respons[0].id,
+          userName: respons[0].userName,
+          accept: false,
+        });
+      }
+    }
+  };
+
+  const denideRequest = async (id) => {
+    findUserById(currentUser.id)
+      .then((userRef) => {
+        if (userRef) {
+          removeObjectFromArray(userRef, "friendsRequests", id);
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+
+    findUserById(id)
+      .then((userRef) => {
+        if (userRef) {
+          removeObjectFromArray(
+            userRef,
+            "friendsRequestsPending",
+            currentUser.id
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  };
+
+  const acceptFriendRequest = async (userId) => {
+    await denideRequest(userId);
+    await addNewFriendInUsers(userId, {
+      id: v4(),
+      userName: currentUser.userName,
+      userImg: currentUser.userImg,
+    });
+    findUserById(userId).then((userRef) => {
+      getUserInfoFromDataBase(userRef.id).then((user) => {
+        addNewFriendInUsers(currentUser.id, {
+          id: v4(),
+          userName: user.userName,
+          userImg: user.userImg,
+        });
+      });
+    });
+  };
+
   if (serverActive === 0) {
     return (
       <div className="bg-neutral-600 w-full h-C_H2 p-2">
@@ -140,8 +218,10 @@ const ChatBar = () => {
                 onChange={(e) => setInput(e.target.value)}
                 type="text"
                 className="absolute w-full bg-neutral-800 p-2 rounded-md"
+                placeholder="add friends by discord username"
               />
               <button
+                onClick={sendFriendRequest}
                 disabled={input === "" ? true : false}
                 className={`${
                   input === "" ? "bg-indigo-400" : "bg-indigo-500"
@@ -152,7 +232,39 @@ const ChatBar = () => {
             </div>
           </div>
         )}
-        {data ? "data" : "loading"}
+        {activeFriendsBar === 2 && (
+          <div>
+            <h1>Pending...</h1>
+            {currentUser?.friendsRequestsPending?.map((user) => {
+              return (
+                <div key={user.id} className="flex gap-3 items-center">
+                  <div> {user.userName}</div>
+                  {user.accept ? "accepted" : "waiting..."}
+                </div>
+              );
+            })}
+            <h1>requests...</h1>
+            {currentUser?.friendsRequests?.map((user) => {
+              return (
+                <div key={user.id} className="flex gap-3 items-center">
+                  <div> {user.userName}</div>
+                  <button
+                    onClick={() => acceptFriendRequest(user.userId)}
+                    className="bg-indigo-500 p-1 rounded-md"
+                  >
+                    accept
+                  </button>
+                  <button
+                    onClick={() => denideRequest(user.userId)}
+                    className="bg-red-500 p-1 rounded-md"
+                  >
+                    denide
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
