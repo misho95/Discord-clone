@@ -4,8 +4,19 @@ import {
   chatLoaded,
   channelOpen,
   userType,
+  userSignedIn,
 } from "../../utils/zustand";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
+import { v4 } from "uuid";
+import {
+  addNewMessageInChat,
+  getDataFromServerBySubId,
+  getAllDataFromServer,
+  userJoinServer,
+  addUserInServer,
+  getServerUid,
+} from "../../utils/firebase";
+import Message from "./message";
 
 const ChatBar = () => {
   const serverActive = activeServer((state) => state.active);
@@ -13,9 +24,109 @@ const ChatBar = () => {
   const [input, setInput] = useState("");
   const openChannel = channelOpen((state) => state.open);
   const loadedChat = chatLoaded((state) => state.chatLoaded);
+  const setLoadedChat = chatLoaded((state) => state.setChatLoaded);
   const typeUser = userType((state) => state.type);
+  const currentUser = userSignedIn((state) => state.currentUser);
+  const chatBox = useRef(null);
+  const [allServersList, setAllServersList] = useState();
+  const [replayTo, setReplayTo] = useState(null);
+
+  const waitAllDataFromServer = async () => {
+    const data = await getAllDataFromServer("servers");
+    setAllServersList(data);
+  };
+
+  useEffect(() => {
+    waitAllDataFromServer();
+  }, []);
 
   const data = null;
+
+  const [message, setMessage] = useState("");
+
+  const handleKeyDown = (event) => {
+    if (event.key === "Enter") {
+      if (replayTo) {
+        replayMessage(
+          replayTo.id,
+          replayTo.userName,
+          replayTo.img,
+          replayTo.message,
+          replayTo.type
+        );
+      } else {
+        submitNewMessage();
+      }
+      setMessage("");
+    }
+  };
+
+  const scrollToBottom = () => {
+    if (chatBox.current) {
+      chatBox.current.scrollTop = chatBox.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    // Scroll to the bottom when messages change or component mounts
+    scrollToBottom();
+  }, [loadedChat]);
+
+  const submitNewMessage = async () => {
+    const date = new Date();
+    const addNewMessage = {
+      id: v4(),
+      userName: currentUser.userName,
+      userImg: currentUser.userImg,
+      message: message,
+      date: date.toString(),
+      userType: typeUser,
+    };
+
+    await addNewMessageInChat(loadedChat.channelId, addNewMessage);
+    const data = await getDataFromServerBySubId("chat", loadedChat.channelId);
+    console.log(data);
+    setLoadedChat(data[0]);
+  };
+
+  const joinNewServer = async (id, name, img) => {
+    await userJoinServer(currentUser.id, { id, name, img });
+    const uid = await getServerUid(id);
+    await addUserInServer(uid, {
+      id: currentUser.id,
+      userImg: currentUser.userImg,
+      userName: currentUser.userName,
+      userType: "user",
+    });
+  };
+
+  const replayMessage = async (id, user, img, mes, type) => {
+    const date = new Date();
+    const addNewMessage = {
+      id: v4(),
+      userName: currentUser.userName,
+      userImg: currentUser.userImg,
+      message: message,
+      date: date.toString(),
+      userType: typeUser,
+      replay: {
+        id: id,
+        userName: user,
+        userImg: img,
+        message: mes,
+        type,
+      },
+    };
+
+    await addNewMessageInChat(loadedChat.channelId, addNewMessage);
+    const data = await getDataFromServerBySubId("chat", loadedChat.channelId);
+    console.log(data);
+    setLoadedChat(data[0]);
+  };
+
+  const getDataFromReply = (id, img, type, userName, date, message) => {
+    setReplayTo({ id, img, type, userName, date, message });
+  };
 
   if (serverActive === 0) {
     return (
@@ -45,41 +156,72 @@ const ChatBar = () => {
     );
   }
 
-  if (!loadedChat || !openChannel.id) {
-    return <div className="bg-neutral-600 w-full h-C_H2 p-2">Loading....</div>;
-  }
-
-  return (
-    <div className="bg-neutral-600 w-full h-C_H2 p-5">
-      <div className="flex flex-col gap-3">
-        {loadedChat.messages.map((m) => {
+  if (serverActive === 99) {
+    return (
+      <div className="bg-neutral-600 w-full h-C_H p-2">
+        {allServersList.map((ser) => {
           return (
-            <div className="flex gap-2">
-              <img src={m.userImg} className="w-10 h-10 rounded-full" />
-              <div>
-                <div className="text-neutral-400 flex gap-2 items-center">
-                  <span
-                    className={`${
-                      typeUser === "owner"
-                        ? "text-white"
-                        : typeUser === "moderator"
-                        ? "text-yellow-400"
-                        : "text-green-400"
-                    } text-md`}
-                  >
-                    {m.userName}
-                  </span>
-                  <div className="text-xs">
-                    {m.date} {m.time}
-                  </div>
-                </div>
-                <div>{m.message}</div>
+            <div key={ser.id} className="w-fit flex gap-2 p-2">
+              <img src={ser.img} className="w-12 h-12 rounded-full" />
+              <div className="flex flex-col gap-1">
+                <h1>{ser.name}</h1>
+                <button
+                  className="bg-indigo-500 px-3 rounded-md"
+                  onClick={() => joinNewServer(ser.id, ser.name, ser.img)}
+                >
+                  Join
+                </button>
               </div>
             </div>
           );
         })}
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="bg-neutral-600 w-full h-C_H2 p-5 flex flex-col gap-10">
+        <div
+          className="flex flex-col gap-3 h-C_H3 overflow-y-auto"
+          ref={chatBox}
+        >
+          {loadedChat?.messages.map((m) => {
+            return (
+              <Message
+                id={m.id}
+                img={m.userImg}
+                type={m.userType}
+                userName={m.userName}
+                date={m.date}
+                message={m.message}
+                replay={m.replay}
+                getDataFromReply={getDataFromReply}
+              />
+            );
+          })}
+        </div>
+        <div className="w-full h-20 relative">
+          {replayTo && (
+            <span className="absolute -top-10">
+              replay to {replayTo.userName}{" "}
+              <button
+                className="bg-indigo-500 rounded-md p-1"
+                onClick={() => setReplayTo(null)}
+              >
+                cancel
+              </button>
+            </span>
+          )}
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full h-fit bg-neutral-700 rounded-md resize-none focus:outline-none p-2"
+          ></textarea>
+        </div>
+      </div>
+    </>
   );
 };
 

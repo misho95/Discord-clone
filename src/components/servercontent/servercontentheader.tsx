@@ -36,6 +36,10 @@ const ServerContentHeader = () => {
     );
   }
 
+  if (serverActive === 99) {
+    return;
+  }
+
   if (!openChannel) {
     <div className="bg-neutral-600 h-12 border-b-2 border-neutral-800 p-2">
       loading...

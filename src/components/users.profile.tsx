@@ -1,15 +1,43 @@
 import { userSignedIn } from "../utils/zustand";
+import { useState } from "react";
+import { signOutUser } from "../utils/firebase";
+import { useNavigate } from "react-router-dom";
 
 const UsersProfile = () => {
   const userAccount = userSignedIn((state) => state.currentUser);
+  const setNewUser = userSignedIn((state) => state.setCurrentUser);
 
   if (!userAccount) {
     return <div>loading...</div>;
   }
 
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const signOut = async () => {
+    await signOutUser();
+    setNewUser(null);
+    navigate("/signin");
+  };
+
   return (
     <div className="bg-neutral-800 absolute bottom-0 w-full p-2 flex gap-2">
-      <div className="flex gap-2 hover:bg-neutral-700 p-2 rounded-lg">
+      <div
+        onClick={() => setOpen(!open)}
+        className="flex gap-2 hover:bg-neutral-700 p-2 rounded-lg relative z-0"
+      >
+        {open && (
+          <div
+            className="absolute -top-14"
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <button className="bg-indigo-500 p-2 rounded-lg" onClick={signOut}>
+              SignOut
+            </button>
+          </div>
+        )}
         <div className="relative w-8 h-8">
           <div
             className={`w-3 h-3 ${

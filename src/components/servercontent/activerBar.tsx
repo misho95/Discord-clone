@@ -1,7 +1,9 @@
-import { activeServer } from "../../utils/zustand";
+import { activeServer, serverLoaded, channelOpen } from "../../utils/zustand";
 
 const ActiveBar = () => {
   const serverActive = activeServer((state) => state.active);
+  const loadedServer = serverLoaded((state) => state.currentServer);
+  const openChannel = channelOpen((state) => state.open);
 
   if (serverActive === 0) {
     return (
@@ -16,7 +18,36 @@ const ActiveBar = () => {
     );
   }
 
-  return <div className="w-80 h-C_H2 bg-neutral-700">Active</div>;
+  if (serverActive === 99) {
+    return;
+  }
+
+  if (!loadedServer || !openChannel.id) {
+    return <div className="w-80 h-C_H2 bg-neutral-700">Loading...</div>;
+  }
+
+  return (
+    <div className="w-80 h-C_H2 bg-neutral-700 p-5 flex flex-col gap-3">
+      {loadedServer.users.map((usr) => {
+        return (
+          <div key={usr.id} className="flex gap-2 items-center">
+            <img src={usr.userImg} className="w-10 h-10  rounded-full" />
+            <span
+              className={`${
+                usr.userType === "owner"
+                  ? "text-white"
+                  : usr.userType === "moderator"
+                  ? "text-yellow-400"
+                  : "text-green-400"
+              } text-md`}
+            >
+              {usr.userName}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 export default ActiveBar;

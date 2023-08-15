@@ -17,13 +17,13 @@ const HomePage = () => {
   const setUserType = userType((state) => state.setType);
 
   useEffect(() => {
-    const findUserInServer = loadedServer.users.find((usr) => {
+    const findUserInServer = loadedServer?.users.find((usr) => {
       if (userActive.id === usr.id) return usr;
     });
     if (findUserInServer) {
-      setUserType(findUserInServer.type);
+      setUserType(findUserInServer.userType);
     }
-  }, []);
+  }, [loadedServer]);
 
   return (
     <div className="bg-neutral-900 w-full min-h-screen text-neutral-200 pt-8 flex">

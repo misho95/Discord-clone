@@ -1,9 +1,80 @@
 import { useState } from "react";
-import { zustandShowAddModal } from "../../utils/zustand";
+import { zustandShowAddModal, userSignedIn } from "../../utils/zustand";
+import { ref, uploadBytes } from "firebase/storage";
+import {
+  storage,
+  addDataInServer,
+  getImgUrl,
+  updateDataInServer,
+} from "../../utils/firebase";
+
+import { v4 } from "uuid";
 
 const AddServerModal = () => {
-  const [serverName, setServerName] = useState("name's server");
+  const currentUser = userSignedIn((state) => state.currentUser);
   const showModal = zustandShowAddModal((state) => state.setShowModal);
+  const [serverName, setServerName] = useState(
+    `${currentUser.userName}'s server`
+  );
+  const [file, setFile] = useState("");
+
+  const createNewServerInDataBase = (e) => {
+    e.preventDefault();
+    if (file === null) return;
+    const imageRef = ref(storage, `images/${file.name + v4()}`);
+    uploadBytes(imageRef, file)
+      .then(async (f) => {
+        const url = await getImgUrl(f.metadata.fullPath);
+        return url;
+      })
+      .then((url) => {
+        const ID = v4();
+        const obj = {
+          id: v4(),
+          name: serverName,
+          img: url,
+          users: [
+            {
+              id: currentUser.id,
+              userName: currentUser.userName,
+              userImg: currentUser.userImg,
+              userType: "owner",
+            },
+          ],
+          channels: [
+            {
+              id: v4(),
+              name: "text channels",
+              channel: [
+                {
+                  id: ID,
+                  name: "general",
+                },
+              ],
+            },
+          ],
+        };
+        addDataInServer("servers", v4(), obj);
+        setServerName(currentUser.userName + "'s server");
+        setFile("");
+        showModal();
+        addDataInServer("chat", ID, {
+          id: v4(),
+          channelId: ID,
+          messages: [],
+        });
+        return obj;
+      })
+      .then((obj) => {
+        updateDataInServer("users", currentUser.id, [
+          {
+            id: obj.id,
+            img: obj.img,
+            name: obj.name,
+          },
+        ]);
+      });
+  };
 
   return (
     <div onClick={showModal} className="w-full h-screen fixed bg-black/50 z-50">
@@ -13,13 +84,16 @@ const AddServerModal = () => {
         }}
         className="bg-white text-neutral-700 rounded-lg p-5 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/4"
       >
-        <form className="flex flex-col gap-3">
+        <form
+          onSubmit={createNewServerInDataBase}
+          className="flex flex-col gap-3"
+        >
           <h1 className="text-xl text-center">Customize your server</h1>
           <p className="text-neutral-400 text-sm">
             Give your new server a personality with a name and an icon. You can
             always change it later.
           </p>
-          <input type="file" />
+          <input type="file" onChange={(e) => setFile(e.target.files[0])} />
           <input
             type="text"
             value={serverName}

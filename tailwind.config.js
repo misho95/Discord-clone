@@ -6,6 +6,7 @@ export default {
       height: {
         C_H: "calc(100vh - 32px)",
         C_H2: "calc(100vh - 32px - 48px)",
+        C_H3: "calc(100vh - 32px - 48px - 120px)",
       },
     },
   },

@@ -1,11 +1,18 @@
 import { useState } from "react";
-import { userType, channelOpen } from "../utils/zustand";
+import { userType, channelOpen, chatLoaded } from "../utils/zustand";
+import { getDataFromServerBySubId } from "../utils/firebase";
 
 const Channels = ({ id, name, channel }) => {
   const [open, setOpen] = useState(false);
   const typeUser = userType((state) => state.type);
   const openChannel = channelOpen((state) => state.open);
   const setOpenChanell = channelOpen((state) => state.setOpen);
+  const setLoadedChat = chatLoaded((state) => state.setChatLoaded);
+
+  const setNewChatLoaded = async (id) => {
+    const loaded = await getDataFromServerBySubId("chat", id);
+    setLoadedChat(loaded[0]);
+  };
 
   return (
     <div key={id}>
@@ -24,7 +31,10 @@ const Channels = ({ id, name, channel }) => {
           {channel.map((c) => {
             return (
               <div
-                onClick={() => setOpenChanell(c.id, c.name)}
+                key={c.id}
+                onClick={() => {
+                  setOpenChanell(c.id, c.name), setNewChatLoaded(c.id);
+                }}
                 className={`text-neutral-400 flex justify-between items-center p-2 rounded-lg ${
                   openChannel.id === c.id ? "bg-neutral-600" : "bg-transparent"
                 }`}

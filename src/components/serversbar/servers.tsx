@@ -1,10 +1,21 @@
-import { activeServer, zustandShowAddModal } from "../../utils/zustand";
+import {
+  activeServer,
+  zustandShowAddModal,
+  serverLoaded,
+} from "../../utils/zustand";
+import { getDataFromServerByID } from "../../utils/firebase";
 
 const Servers = ({ id, link, name }) => {
   const setActiveserver = activeServer((state) => state.setActive);
   const serverActive = activeServer((state) => state.active);
   const showModal = zustandShowAddModal((state) => state.showModal);
   const setShowModal = zustandShowAddModal((state) => state.setShowModal);
+  const setLoadedServer = serverLoaded((state) => state.setCurrentServer);
+
+  const loadNewServer = async () => {
+    const serverData = await getDataFromServerByID("servers", id);
+    setLoadedServer(serverData[0]);
+  };
 
   return (
     <div className="flex gap-2 items-center justify-center relative group w-20">
@@ -18,7 +29,7 @@ const Servers = ({ id, link, name }) => {
       <div>
         <img
           onClick={() => {
-            setActiveserver(id), showModal && setShowModal();
+            setActiveserver(id), showModal && setShowModal(), loadNewServer();
           }}
           src={link}
           className={`w-12 ${
