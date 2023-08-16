@@ -17,15 +17,15 @@ const Message = ({
           <span
             className={`${
               replay.type === "owner"
-                ? "text-white"
+                ? "text-white/50"
                 : replay.type === "moderator"
-                ? "text-yellow-400"
-                : "text-green-400"
+                ? "text-yellow-500/50"
+                : "text-green-500/50"
             } text-md`}
           >
             {replay.userName}
           </span>
-          <span>{replay.message}</span>
+          <span className="text-white/90 text-sm">{replay.message}</span>
         </div>
       )}
       <div key={id} className="flex gap-2">
@@ -51,7 +51,7 @@ const Message = ({
             </span>
             <div className="text-xs">{date}</div>
           </div>
-          <div>{message}</div>
+          <div className="text-md">{message}</div>
         </div>
       </div>
     </>

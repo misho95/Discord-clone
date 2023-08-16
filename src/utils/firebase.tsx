@@ -19,7 +19,6 @@ import {
   where,
   updateDoc,
   arrayUnion,
-  arrayRemove,
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import "firebase/firestore";
@@ -101,12 +100,29 @@ export const addDataInServer = async (serverName, id, obj) => {
   await setDoc(doc(db, serverName, id), obj);
 };
 
-export const updateDataInServer = async (serverName, id, obj) => {
-  const batch = writeBatch(db);
-  const sfRef = doc(db, serverName, id);
-  batch.update(sfRef, { joinedServers: obj });
-  // Commit the batch
-  await batch.commit();
+export const updateDataInServer = async (serverName, arrayName, id, obj) => {
+  // Reference to the specific channel document
+  const channelRef = doc(db, serverName, id);
+
+  try {
+    // Reference to the specific server document using the serverId
+    const serverRef = doc(db, "users", id);
+
+    const serverSnapshot = await getDoc(channelRef);
+
+    if (serverSnapshot.exists()) {
+      // Update the "channels" array using the arrayUnion function
+      await updateDoc(serverRef, {
+        [arrayName]: arrayUnion(obj),
+      });
+
+      console.log("New channel added successfully!");
+    } else {
+      console.log("Server document does not exist.");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+  }
 };
 
 export const getAllDataFromServer = async (serverName) => {

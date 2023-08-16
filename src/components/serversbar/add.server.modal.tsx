@@ -12,15 +12,28 @@ import { v4 } from "uuid";
 
 const AddServerModal = () => {
   const currentUser = userSignedIn((state) => state.currentUser);
+  const setCurrentUser = userSignedIn((state) => state.setCurrentUser);
   const showModal = zustandShowAddModal((state) => state.setShowModal);
   const [serverName, setServerName] = useState(
     `${currentUser.userName}'s server`
   );
-  const [file, setFile] = useState("");
+  const [file, setFile] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const createNewServerInDataBase = (e) => {
     e.preventDefault();
-    if (file === null) return;
+    if (file === null) {
+      setError("Please Upload File");
+      return;
+    }
+
+    const type = file.type.slice(0, 5);
+
+    if (type !== "image") {
+      setError("Upload Only Images");
+      return;
+    }
+
     const imageRef = ref(storage, `images/${file.name + v4()}`);
     uploadBytes(imageRef, file)
       .then(async (f) => {
@@ -66,13 +79,11 @@ const AddServerModal = () => {
         return obj;
       })
       .then((obj) => {
-        updateDataInServer("users", currentUser.id, [
-          {
-            id: obj.id,
-            img: obj.img,
-            name: obj.name,
-          },
-        ]);
+        updateDataInServer("users", "joinedServers", currentUser.id, {
+          id: obj.id,
+          img: obj.img,
+          name: obj.name,
+        });
       });
   };
 
@@ -103,6 +114,7 @@ const AddServerModal = () => {
           <button className="bg-indigo-500 text-white p-2 rounded-lg">
             Create
           </button>
+          {error && <div className="text-sm text-red-500">{error}</div>}
         </form>
       </div>
     </div>
