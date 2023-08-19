@@ -76,3 +76,17 @@ const createRequestNotification = (set) => ({
 });
 
 export const requestNotification = create(createRequestNotification);
+
+const createLoadedDirectChatMembers = (set) => ({
+  members: [],
+  addMember: (obj) => set((state) => ({ members: [...state.members, obj] })),
+});
+
+export const loadedDirectChatMembers = create(createLoadedDirectChatMembers);
+
+const createLoadedDirectChat = (set) => ({
+  chat: null,
+  setChat: (obj) => set(() => ({ chat: obj })),
+});
+
+export const loadedDirectChat = create(createLoadedDirectChat);

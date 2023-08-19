@@ -1,8 +1,43 @@
 import Button from "../directChat/button";
 import UsersProfile from "../users.profile";
+import {
+  loadedDirectChatMembers,
+  loadedDirectChat,
+  friendsActiveBar,
+} from "../../utils/zustand";
+import { onSnapshot, doc } from "firebase/firestore";
+import { db } from "../../utils/firebase";
 
 const DirectChatContainer = () => {
-  const friends = [];
+  const chatMembers = loadedDirectChatMembers((state) => state.members);
+  const setLoadedDirectChat = loadedDirectChat((state) => state.setChat);
+  const setActiveFriendsBar = friendsActiveBar((state) => state.setActive);
+
+  const setNewLoadedChat = (chatId) => {
+    setActiveFriendsBar(6);
+    onSnapshot(doc(db, "directChat", chatId), (doc) => {
+      setLoadedDirectChat(doc.data());
+    });
+  };
+
+  const LoadedMembersListRender = () => {
+    return (
+      <div className="flex flex-col gap-3">
+        {chatMembers.map((user) => {
+          return (
+            <div
+              key={user.id}
+              onClick={() => setNewLoadedChat(user.chatId)}
+              className="flex gap-2 items-center"
+            >
+              <img src={user.userImg} className="w-8 h-8 rounded-full" />
+              <span className="text-neutral-300">{user.userName}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div className="bg-neutral-700 w-80 h-C_H rounded-tl-lg flex flex-col gap-3 relative z-0">
@@ -23,7 +58,7 @@ const DirectChatContainer = () => {
         </h1>
       </div>
       <div className="text-neutral-500 px-2">
-        {friends.length > 0 ? "friends list" : "loading..."}
+        {chatMembers.length > 0 ? <LoadedMembersListRender /> : "loading..."}
       </div>
       <UsersProfile />
     </div>

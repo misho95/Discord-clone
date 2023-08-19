@@ -557,3 +557,29 @@ export const removeObjectFromServer = async (userRef, arrayField, objectId) => {
 export const removeData = async (server, id) => {
   await deleteDoc(doc(db, server, id));
 };
+
+export const addNewMessageInDirectChat = async (id, newMessage) => {
+  // Reference to the specific channel document
+  const channelRef = doc(db, "directChat", id);
+
+  getDoc(channelRef)
+    .then((docSnapshot) => {
+      if (docSnapshot.exists()) {
+        // Update the "messages" array using the arrayUnion function
+        updateDoc(channelRef, {
+          messages: arrayUnion(newMessage),
+        })
+          .then(() => {
+            console.log("New message added successfully!");
+          })
+          .catch((error) => {
+            console.error("Error adding new message:", error);
+          });
+      } else {
+        console.log("Channel document doesn't exist.");
+      }
+    })
+    .catch((error) => {
+      console.error("Error checking channel document:", error);
+    });
+};

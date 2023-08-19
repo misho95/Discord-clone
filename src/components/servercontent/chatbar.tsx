@@ -4,6 +4,7 @@ import {
   chatLoaded,
   userType,
   userSignedIn,
+  loadedDirectChat,
 } from "../../utils/zustand";
 import { useState, useRef, useEffect } from "react";
 import { v4 } from "uuid";
@@ -19,6 +20,8 @@ import {
   removeObjectFromArray,
   addNewFriendInUsers,
   getUserInfoFromDataBase,
+  addDataInServer,
+  addNewMessageInDirectChat,
 } from "../../utils/firebase";
 import Message from "./message";
 import ServersList from "./servers.lists";
@@ -36,6 +39,9 @@ const ChatBar = () => {
   const chatBox = useRef(null);
   const [allServersList, setAllServersList] = useState([]);
   const [replayTo, setReplayTo] = useState(null);
+  const [replayToDirectChat, setReaplyToDirectChat] = useState(null);
+  const directChatLoaded = loadedDirectChat((state) => state.chat);
+  const [directChatMessage, setDirectChatMessage] = useState("");
 
   const waitAllDataFromServer = async () => {
     onSnapshot(collection(db, "servers"), (querySnapshot) => {
@@ -51,8 +57,6 @@ const ChatBar = () => {
   useEffect(() => {
     waitAllDataFromServer();
   }, []);
-
-  const data = null;
 
   const [message, setMessage] = useState("");
 
@@ -71,6 +75,24 @@ const ChatBar = () => {
         submitNewMessage();
       }
       setMessage("");
+    }
+  };
+
+  const handleKeyDownOnDirectMessages = (event) => {
+    if (event.key === "Enter") {
+      if (replayToDirectChat) {
+        replayMessageToDirectChat(
+          replayToDirectChat.id,
+          replayToDirectChat.userName,
+          replayToDirectChat.img,
+          replayToDirectChat.message,
+          replayToDirectChat.type
+        );
+        setReaplyToDirectChat(null);
+      } else {
+        submitNewMessageInDirectChat();
+      }
+      setDirectChatMessage("");
     }
   };
 
@@ -97,6 +119,20 @@ const ChatBar = () => {
     };
 
     await addNewMessageInChat(loadedChat.channelId, addNewMessage);
+  };
+
+  const submitNewMessageInDirectChat = async () => {
+    const date = new Date();
+    const addNewMessage = {
+      id: v4(),
+      userName: currentUser.userName,
+      userImg: currentUser.userImg,
+      message: directChatMessage,
+      date: date.toString(),
+      userType: "owner",
+    };
+
+    await addNewMessageInDirectChat(directChatLoaded.id, addNewMessage);
   };
 
   const joinNewServer = async (id, name, img) => {
@@ -129,6 +165,38 @@ const ChatBar = () => {
     };
 
     await addNewMessageInChat(loadedChat.channelId, addNewMessage);
+  };
+
+  const getDataFromReplyDirectChat = (
+    id,
+    img,
+    type,
+    userName,
+    date,
+    message
+  ) => {
+    setReaplyToDirectChat({ id, img, type, userName, date, message });
+  };
+
+  const replayMessageToDirectChat = async (id, user, img, mes, type) => {
+    const date = new Date();
+    const addNewMessage = {
+      id: v4(),
+      userName: currentUser.userName,
+      userImg: currentUser.userImg,
+      message: directChatMessage,
+      date: date.toString(),
+      userType: "owner",
+      replay: {
+        id: id,
+        userName: user,
+        userImg: img,
+        message: mes,
+        type,
+      },
+    };
+
+    await addNewMessageInDirectChat(directChatLoaded.id, addNewMessage);
   };
 
   const getDataFromReply = (id, img, type, userName, date, message) => {
@@ -188,12 +256,20 @@ const ChatBar = () => {
   };
 
   const acceptFriendRequest = async (userId) => {
+    const ID = v4();
+
+    await addDataInServer("directChat", ID, {
+      id: ID,
+      messages: [],
+    });
+
     await denideRequest(userId);
     await addNewFriendInUsers(userId, {
       id: v4(),
       userId: currentUser.id,
       userName: currentUser.userName,
       userImg: currentUser.userImg,
+      chatId: ID,
     });
     findUserById(userId).then((userRef) => {
       getUserInfoFromDataBase(userRef.id).then((user) => {
@@ -202,6 +278,7 @@ const ChatBar = () => {
           userId: user.id,
           userName: user.userName,
           userImg: user.userImg,
+          chatId: ID,
         });
       });
     });
@@ -276,6 +353,7 @@ const ChatBar = () => {
                   userImg={user.userImg}
                   userName={user.userName}
                   userId={user.userId}
+                  chatId={user.chatId}
                   removeFriend={removeFriend}
                 />
               );
@@ -325,6 +403,49 @@ const ChatBar = () => {
               })}
             </div>
           </>
+        )}
+        {activeFriendsBar === 6 && (
+          <div>
+            <div
+              className="flex flex-col gap-3 h-C_H3 overflow-y-auto"
+              ref={chatBox}
+            >
+              {directChatLoaded?.messages.map((m) => {
+                return (
+                  <Message
+                    key={m.id}
+                    id={m.id}
+                    img={m.userImg}
+                    type={m.userType}
+                    userName={m.userName}
+                    date={m.date}
+                    message={m.message}
+                    replay={m.replay}
+                    getDataFromReply={getDataFromReplyDirectChat}
+                  />
+                );
+              })}
+            </div>
+            <div className="w-full h-20 relative">
+              {replayToDirectChat && (
+                <span className="absolute -top-10">
+                  replay to {replayToDirectChat.userName}{" "}
+                  <button
+                    className="bg-indigo-500 rounded-md p-1"
+                    onClick={() => setReaplyToDirectChat(null)}
+                  >
+                    cancel
+                  </button>
+                </span>
+              )}
+              <textarea
+                value={directChatMessage}
+                onChange={(e) => setDirectChatMessage(e.target.value)}
+                onKeyDown={handleKeyDownOnDirectMessages}
+                className="w-full h-fit bg-neutral-700 rounded-md resize-none focus:outline-none p-2"
+              ></textarea>
+            </div>
+          </div>
         )}
       </div>
     );

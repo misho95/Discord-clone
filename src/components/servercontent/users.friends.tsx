@@ -1,9 +1,21 @@
 import { useState, useEffect } from "react";
 import { onSnapshot, doc } from "firebase/firestore";
 import { db } from "../../utils/firebase";
+import { loadedDirectChatMembers } from "../../utils/zustand";
 
-const UsersFriends = ({ id, userImg, userName, userId, removeFriend }) => {
+const UsersFriends = ({
+  id,
+  userImg,
+  userName,
+  userId,
+  chatId,
+  removeFriend,
+}) => {
   const [userOnline, setUserOnline] = useState(false);
+  const loadedChatMembers = loadedDirectChatMembers((state) => state.members);
+  const setLoadedChatMembers = loadedDirectChatMembers(
+    (state) => state.addMember
+  );
 
   const setUserData = async (server, id) => {
     onSnapshot(doc(db, server, id), (doc) => {
@@ -14,6 +26,19 @@ const UsersFriends = ({ id, userImg, userName, userId, removeFriend }) => {
   useEffect(() => {
     setUserData("users", userId);
   }, []);
+
+  const addNewMemberInChat = () => {
+    const find = loadedChatMembers.find((user) => {
+      if (user.id === id) {
+        return user;
+      }
+    });
+    if (!find) {
+      setLoadedChatMembers({ id, userImg, userName, userId, chatId });
+    }
+
+    return;
+  };
 
   return (
     <div
@@ -31,7 +56,12 @@ const UsersFriends = ({ id, userImg, userName, userId, removeFriend }) => {
       </div>
       <div className="flex gap-2">
         <button className="bg-neutral-700 p-2 rounded-full flex">
-          <span className="material-symbols-outlined">chat</span>
+          <span
+            onClick={addNewMemberInChat}
+            className="material-symbols-outlined"
+          >
+            chat
+          </span>
         </button>
         <button
           onClick={() => removeFriend(userId)}
