@@ -3,7 +3,9 @@ import {
   zustandShowAddModal,
   serverLoaded,
 } from "../../utils/zustand";
-import { getDataFromServerByID } from "../../utils/firebase";
+import { getUid } from "../../utils/firebase";
+import { onSnapshot, doc } from "firebase/firestore";
+import { db } from "../../utils/firebase";
 
 const Servers = ({ id, link, name }) => {
   const setActiveserver = activeServer((state) => state.setActive);
@@ -13,8 +15,10 @@ const Servers = ({ id, link, name }) => {
   const setLoadedServer = serverLoaded((state) => state.setCurrentServer);
 
   const loadNewServer = async () => {
-    const serverData = await getDataFromServerByID("servers", id);
-    setLoadedServer(serverData[0]);
+    const uid = await getUid("servers", id);
+    onSnapshot(doc(db, "servers", uid), (doc) => {
+      setLoadedServer(doc.data());
+    });
   };
 
   return (

@@ -7,14 +7,18 @@ import {
   serverLoaded,
   userSignedIn,
   userType,
+  requestNotification,
 } from "../utils/zustand";
 import { useEffect } from "react";
+import { updateUserStatus, getUserInfoFromDataBase } from "../utils/firebase";
 
 const HomePage = () => {
   const showAddModal = zustandShowAddModal((state) => state.showModal);
   const loadedServer = serverLoaded((state) => state.currentServer);
   const userActive = userSignedIn((state) => state.currentUser);
+  const setUserAcive = userSignedIn((state) => state.setCurrentUser);
   const setUserType = userType((state) => state.setType);
+  const setNewRequestNotif = requestNotification((state) => state.setNumber);
 
   useEffect(() => {
     const findUserInServer = loadedServer?.users.find((usr) => {
@@ -24,6 +28,32 @@ const HomePage = () => {
       setUserType(findUserInServer.userType);
     }
   }, [loadedServer]);
+
+  useEffect(() => {
+    const waitToUpdate = async (val) => {
+      await updateUserStatus(userActive.id, val);
+      const updated = await getUserInfoFromDataBase(userActive.id);
+      setUserAcive(updated);
+    };
+    waitToUpdate(true);
+
+    const handleBeforeUnload = () => {
+      waitToUpdate(false);
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
+
+  useEffect(() => {
+    const notif = userActive?.friendsRequests?.reduce((val, el) => {
+      return val + 1;
+    }, 0);
+    setNewRequestNotif(notif > 0 ? notif : null);
+  }, [userActive]);
 
   return (
     <div className="bg-neutral-900 w-full min-h-screen text-neutral-200 pt-8 flex">

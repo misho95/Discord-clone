@@ -69,3 +69,10 @@ const createServersList = (set) => ({
 });
 
 export const serversList = create(createServersList);
+
+const createRequestNotification = (set) => ({
+  number: null,
+  setNumber: (num) => set(() => ({ number: num })),
+});
+
+export const requestNotification = create(createRequestNotification);

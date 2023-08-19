@@ -1,6 +1,6 @@
 import { userSignedIn } from "../utils/zustand";
 import { useState } from "react";
-import { signOutUser } from "../utils/firebase";
+import { signOutUser, updateUserStatus } from "../utils/firebase";
 import { useNavigate } from "react-router-dom";
 
 const UsersProfile = () => {
@@ -18,6 +18,7 @@ const UsersProfile = () => {
     await signOutUser();
     setNewUser(null);
     navigate("/signin");
+    await updateUserStatus(userAccount.id, false);
   };
 
   return (
@@ -41,7 +42,7 @@ const UsersProfile = () => {
         <div className="relative w-8 h-8">
           <div
             className={`w-3 h-3 ${
-              userAccount.isUserOnline ? "bg-green-600" : "bg-red-600"
+              userAccount.userOnline ? "bg-green-600" : "bg-red-600"
             }  rounded-full absolute bottom-0 right-0 z-10 border-2 border-neutral-700`}
           ></div>
           <img
@@ -51,7 +52,7 @@ const UsersProfile = () => {
         </div>
         <div className="text-xs text-neutral-300">
           <p>{userAccount.userName}</p>
-          <p>{userAccount.isUserOnline ? "Online" : "Offline"}</p>
+          <p>{userAccount.userOnline ? "Online" : "Offline"}</p>
         </div>
       </div>
     </div>

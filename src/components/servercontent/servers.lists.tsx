@@ -5,7 +5,7 @@ const ServersList = ({ id, img, name, users, joinNewServer }) => {
   const [isUserExist, setIsUserExist] = useState(false);
   const currentUser = userSignedIn((state) => state.currentUser);
 
-  const checkIfUserIsAlreadyJoined = () => {
+  useEffect(() => {
     const userInData = users.find((user) => {
       if (user.userName === currentUser.userName) {
         return users;
@@ -16,11 +16,7 @@ const ServersList = ({ id, img, name, users, joinNewServer }) => {
     } else {
       setIsUserExist(false);
     }
-  };
-
-  useEffect(() => {
-    checkIfUserIsAlreadyJoined();
-  }, []);
+  }, [users]);
 
   return (
     <div className="w-fit h-fit flex gap-2 p-2">

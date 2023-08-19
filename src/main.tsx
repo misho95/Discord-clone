@@ -6,6 +6,7 @@ import HomePage from "./pages/homepage";
 import SignIn from "./pages/signin";
 import SignUp from "./pages/signup";
 import ProtectedRout from "./protected.rout";
+import Profile from "./pages/profile";
 
 const router = createBrowserRouter([
   {

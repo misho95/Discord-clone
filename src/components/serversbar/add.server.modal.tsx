@@ -12,7 +12,6 @@ import { v4 } from "uuid";
 
 const AddServerModal = () => {
   const currentUser = userSignedIn((state) => state.currentUser);
-  const setCurrentUser = userSignedIn((state) => state.setCurrentUser);
   const showModal = zustandShowAddModal((state) => state.setShowModal);
   const [serverName, setServerName] = useState(
     `${currentUser.userName}'s server`

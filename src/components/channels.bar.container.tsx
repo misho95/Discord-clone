@@ -1,17 +1,62 @@
-import { activeServer, serverLoaded, userType } from "../utils/zustand";
+import {
+  activeServer,
+  serverLoaded,
+  userType,
+  userSignedIn,
+} from "../utils/zustand";
 import Channels from "./channels";
 import DirectChatContainer from "./directChat/direct.chat.container";
 import UsersProfile from "./users.profile";
 import { useState } from "react";
-import { addNewServerChannel, getServerUid } from "../utils/firebase";
+import {
+  addNewServerChannel,
+  getServerUid,
+  findUserById,
+  findServerById,
+  removeObjectFromServer,
+  getUid,
+  removeData,
+} from "../utils/firebase";
 import { v4 } from "uuid";
 
 const ChannelsBarContainer = () => {
+  const activeUser = userSignedIn((state) => state.currentUser);
   const serverActive = activeServer((state) => state.active);
+  const setServerActive = activeServer((state) => state.setActive);
   const loadedServer = serverLoaded((state) => state.currentServer);
   const typeOfUser = userType((state) => state.type);
   const [openServerSettings, setOpenServerSettings] = useState(false);
   const [openAddNewCategoryModal, setOpenNewCategoryModal] = useState(false);
+
+  const userLeaveServer = async () => {
+    findUserById(activeUser.id).then((user) => {
+      if (user) {
+        removeObjectFromServer(user, "joinedServers", loadedServer.id);
+      }
+    });
+    const serverUid = await getUid("servers", loadedServer.id);
+    findServerById(serverUid).then((ser) => {
+      removeObjectFromServer(ser, "users", activeUser.id);
+    });
+    setServerActive(0);
+  };
+
+  const deleteServer = async () => {
+    const serverUid = await getUid("servers", loadedServer.id);
+
+    for (let x = 0; x < loadedServer.users.length; x++) {
+      findServerById(serverUid).then((ser) => {
+        removeObjectFromServer(ser, "users", loadedServer.users[x].id);
+      });
+      findUserById(loadedServer.users[x].id).then((user) => {
+        if (user) {
+          removeObjectFromServer(user, "joinedServers", loadedServer.id);
+        }
+      });
+    }
+    await removeData("servers", serverUid);
+    setServerActive(0);
+  };
 
   const ModalForAddNewCategory = () => {
     const [input, setInput] = useState("");
@@ -71,7 +116,7 @@ const ChannelsBarContainer = () => {
 
   if (serverActive === 99) {
     return (
-      <div className="bg-neutral-700 w-80 h-C_H rounded-tl-lg relative z-0">
+      <div className="bg-neutral-700 w-full sm:w-80 h-C_H rounded-tl-lg relative z-0">
         Explore Servers
         <UsersProfile />
       </div>
@@ -80,7 +125,7 @@ const ChannelsBarContainer = () => {
 
   if (!loadedServer) {
     return (
-      <div className="bg-neutral-700 w-80 h-C_H rounded-tl-lg relative z-0">
+      <div className="bg-neutral-700 w-full sm:w-80 h-C_H rounded-tl-lg relative z-0">
         loading....
         <UsersProfile />
       </div>
@@ -88,7 +133,7 @@ const ChannelsBarContainer = () => {
   }
 
   return (
-    <div className="bg-neutral-700 w-80 h-C_H rounded-tl-lg relative z-0">
+    <div className="bg-neutral-700 w-full sm:w-80 h-C_H rounded-tl-lg relative z-0">
       <div className="h-12 border-b-2 border-neutral-800">
         {openAddNewCategoryModal && <ModalForAddNewCategory />}
         {openServerSettings && (
@@ -108,12 +153,18 @@ const ChannelsBarContainer = () => {
               </button>
             )}
             {typeOfUser === "owner" ? (
-              <button className="w-full flex justify-between">
+              <button
+                onClick={deleteServer}
+                className="w-full flex justify-between"
+              >
                 Delete Server
                 <span className="material-symbols-outlined">delete</span>
               </button>
             ) : (
-              <button className="w-full flex justify-between">
+              <button
+                onClick={userLeaveServer}
+                className="w-full flex justify-between"
+              >
                 Leave Server
                 <span className="material-symbols-outlined">exit_to_app</span>
               </button>

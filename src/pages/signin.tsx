@@ -9,7 +9,9 @@ import { useNavigate } from "react-router-dom";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState(null);
   const [pass, setPass] = useState("");
+  const [passError, setPassError] = useState(null);
   const setCurrentUser = userSignedIn((state) => state.setCurrentUser);
   const navigate = useNavigate();
 
@@ -18,10 +20,20 @@ const SignIn = () => {
     try {
       const { user } = await SignInAuthUserWithEmailAndPassword(email, pass);
       const userData = await getUserInfoFromDataBase(user.uid);
-      setCurrentUser(userData);
+      // setCurrentUser(userData);
       navigate("/");
     } catch (error) {
-      console.log(error);
+      console.log(error.code);
+      switch (error.code) {
+        case "auth/user-not-found":
+          setEmailError("user-not-found");
+          setPassError(null);
+          return;
+        case "auth/wrong-password":
+          setPassError("wrong-password");
+          setEmailError(null);
+          return;
+      }
     }
   };
 
@@ -41,12 +53,18 @@ const SignIn = () => {
               type={"email"}
               set={setEmail}
             />
+            {emailError && (
+              <div className="text-red-500 text-sm">{emailError}</div>
+            )}
             <Input
               title={"PASSWORD"}
               value={pass}
               set={setPass}
               type={"password"}
             />
+            {passError && (
+              <div className="text-red-500 text-sm">{passError}</div>
+            )}
             <a href="#" className="text-blue-500 text-sm">
               Forgot password?
             </a>

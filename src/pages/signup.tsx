@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   createAuthUserWithEmailAndPassword,
   createUserDocumentFromAuth,
+  getAllDataFromServer,
 } from "../utils/firebase";
 import { useNavigate } from "react-router-dom";
 import Input from "../components/input";
@@ -9,6 +10,7 @@ import Select from "../components/select";
 
 const SignUp = () => {
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState(null);
   const [name, setName] = useState("");
   const [userName, setUserName] = useState("");
   const [pass, setPass] = useState("");
@@ -16,6 +18,23 @@ const SignUp = () => {
   const [day, setDay] = useState("1");
   const [year, setYear] = useState("2022");
   const navigate = useNavigate();
+  const [userData, setUserData] = useState();
+  const [isUserUsed, setIsUserUsed] = useState(false);
+
+  useEffect(() => {
+    getAllDataFromServer("users").then((data) => {
+      setUserData(data);
+    });
+  }, []);
+
+  const checkIfUserNameIsUsed = () => {
+    const userUsed = userData.find((user) => {
+      if (user.userName === userName) {
+        return user;
+      }
+    });
+    setIsUserUsed(userUsed ? true : false);
+  };
 
   const month = [
     "January",
@@ -51,6 +70,10 @@ const SignUp = () => {
 
   const submitNewUser = async (e) => {
     e.preventDefault();
+    checkIfUserNameIsUsed();
+    if (isUserUsed) {
+      return;
+    }
     try {
       const { user } = await createAuthUserWithEmailAndPassword(email, pass);
       await createUserDocumentFromAuth(user, {
@@ -67,7 +90,11 @@ const SignUp = () => {
       });
       navigate("/");
     } catch (error) {
-      console.log(error);
+      console.log(error.code);
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          setEmailError("email-already-in-use");
+      }
     }
   };
 
@@ -76,8 +103,11 @@ const SignUp = () => {
       <div
         className={`w-4/5 sm:w-2/5 lg:w-1/5 h-fit bg-gray-700 text-gray-200 rounded-md p-5`}
       >
-        <form onSubmit={submitNewUser} className="flex flex-col gap-5 w-full">
+        <form onSubmit={submitNewUser} className="flex flex-col gap-2 w-full">
           <Input title={"EMAIL"} value={email} set={setEmail} type={"email"} />
+          {emailError && (
+            <div className="text-red-500 text-sm">{emailError}</div>
+          )}
           <Input
             title={"DISPLAY NAME"}
             value={name}
@@ -90,6 +120,9 @@ const SignUp = () => {
             set={setUserName}
             type={"text"}
           />
+          {isUserUsed && (
+            <div className="text-sm text-red-500">{"User Is Already Used"}</div>
+          )}
           <Input
             title={"PASSWORD"}
             value={pass}

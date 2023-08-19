@@ -9,8 +9,6 @@ import { useState, useRef, useEffect } from "react";
 import { v4 } from "uuid";
 import {
   addNewMessageInChat,
-  getDataFromServerBySubId,
-  getAllDataFromServer,
   userJoinServer,
   addUserInServer,
   findUserByUserName,
@@ -24,22 +22,30 @@ import {
 } from "../../utils/firebase";
 import Message from "./message";
 import ServersList from "./servers.lists";
+import { onSnapshot, collection } from "firebase/firestore";
+import { db } from "../../utils/firebase";
+import UsersFriends from "./users.friends";
 
 const ChatBar = () => {
   const serverActive = activeServer((state) => state.active);
   const activeFriendsBar = friendsActiveBar((state) => state.active);
   const [input, setInput] = useState("");
   const loadedChat = chatLoaded((state) => state.chatLoaded);
-  const setLoadedChat = chatLoaded((state) => state.setChatLoaded);
   const typeUser = userType((state) => state.type);
   const currentUser = userSignedIn((state) => state.currentUser);
   const chatBox = useRef(null);
-  const [allServersList, setAllServersList] = useState();
+  const [allServersList, setAllServersList] = useState([]);
   const [replayTo, setReplayTo] = useState(null);
 
   const waitAllDataFromServer = async () => {
-    const data = await getAllDataFromServer("servers");
-    setAllServersList(data);
+    onSnapshot(collection(db, "servers"), (querySnapshot) => {
+      const serverData = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        serverData.push(data);
+      });
+      setAllServersList(serverData);
+    });
   };
 
   useEffect(() => {
@@ -91,9 +97,6 @@ const ChatBar = () => {
     };
 
     await addNewMessageInChat(loadedChat.channelId, addNewMessage);
-    const data = await getDataFromServerBySubId("chat", loadedChat.channelId);
-    console.log(data);
-    setLoadedChat(data[0]);
   };
 
   const joinNewServer = async (id, name, img) => {
@@ -126,9 +129,6 @@ const ChatBar = () => {
     };
 
     await addNewMessageInChat(loadedChat.channelId, addNewMessage);
-    const data = await getDataFromServerBySubId("chat", loadedChat.channelId);
-    console.log(data);
-    setLoadedChat(data[0]);
   };
 
   const getDataFromReply = (id, img, type, userName, date, message) => {
@@ -143,7 +143,6 @@ const ChatBar = () => {
           return user;
         }
       });
-      console.log(findIfUserIsAlreadyFriend);
 
       if (!findIfUserIsAlreadyFriend) {
         await updateUserFriendRequests(respons[0].id, {
@@ -229,6 +228,19 @@ const ChatBar = () => {
       });
   };
 
+  const cancelRequest = async (id) => {
+    findUserById(id).then((userRef) => {
+      if (userRef) {
+        removeObjectFromArray(userRef, "friendsRequests", currentUser.id);
+      }
+    });
+    findUserById(currentUser.id).then((userRef) => {
+      if (userRef) {
+        removeObjectFromArray(userRef, "friendsRequestsPending", id);
+      }
+    });
+  };
+
   if (serverActive === 0) {
     return (
       <div className="bg-neutral-600 w-full h-C_H2 p-2">
@@ -258,29 +270,14 @@ const ChatBar = () => {
           <div className="flex flex-wrap p-5">
             {currentUser.userFriends.map((user) => {
               return (
-                <div
+                <UsersFriends
                   key={user.id}
-                  className="flex items-center justify-between w-full hover:bg-neutral-500 p-2 rounded-md"
-                >
-                  <div className="flex gap-2 items-center">
-                    <img
-                      src={user.userImg}
-                      className="w-10 h-10 rounded-full"
-                    />{" "}
-                    {user.userName}
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="bg-neutral-700 p-2 rounded-full flex">
-                      <span className="material-symbols-outlined">chat</span>
-                    </button>
-                    <button
-                      onClick={() => removeFriend(user.userId)}
-                      className="bg-neutral-700 p-1 rounded-md text-red-500"
-                    >
-                      Remove Friend
-                    </button>
-                  </div>
-                </div>
+                  id={user.id}
+                  userImg={user.userImg}
+                  userName={user.userName}
+                  userId={user.userId}
+                  removeFriend={removeFriend}
+                />
               );
             })}
           </div>
@@ -292,10 +289,19 @@ const ChatBar = () => {
               return (
                 <div key={user.id} className="flex gap-3 items-center">
                   <div> {user.userName}</div>
-                  {user.accept ? "accepted" : "waiting..."}
+                  <button
+                    onClick={() => cancelRequest(user.userId)}
+                    className="bg-indigo-500 px-2 rounded-md"
+                  >
+                    Cancel Request
+                  </button>
                 </div>
               );
             })}
+          </div>
+        )}
+        {activeFriendsBar === 5 && (
+          <>
             <h1>requests...</h1>
             <div className="flex flex-col gap-3">
               {currentUser?.friendsRequests?.map((user) => {
@@ -318,7 +324,7 @@ const ChatBar = () => {
                 );
               })}
             </div>
-          </div>
+          </>
         )}
       </div>
     );

@@ -2,6 +2,7 @@ import {
   activeServer,
   directChatActive,
   channelOpen,
+  requestNotification,
 } from "../../utils/zustand";
 import Button from "./button";
 import ButtonAdd from "./buttonadd";
@@ -10,6 +11,7 @@ const ServerContentHeader = () => {
   const serverActive = activeServer((state) => state.active);
   const directActiveChat = directChatActive((state) => state.active);
   const openChannel = channelOpen((state) => state.open);
+  const ifRequestNotification = requestNotification((state) => state.number);
 
   if (serverActive === 0) {
     return directActiveChat === 1 ? (
@@ -21,6 +23,14 @@ const ServerContentHeader = () => {
         <Button id={0} name={"Online"} />
         <Button id={1} name={"All"} />
         <Button id={2} name={"Pending"} />
+        <div className="w-fit h-fit relative">
+          <Button id={5} name={"Requests"} />
+          {ifRequestNotification && (
+            <div className="absolute bg-red-600 rounded-full text-red-200 -right-3 -top-3 w-6 h-6 flex items-center justify-center">
+              {ifRequestNotification}
+            </div>
+          )}
+        </div>
         <Button id={3} name={"Blocked"} />
         <ButtonAdd id={4} name={"Add Friend"} />
       </div>

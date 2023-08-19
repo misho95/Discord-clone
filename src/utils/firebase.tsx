@@ -14,11 +14,12 @@ import {
   getDocs,
   setDoc,
   collection,
-  writeBatch,
+  onSnapshot,
   query,
   where,
   updateDoc,
   arrayUnion,
+  deleteDoc,
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import "firebase/firestore";
@@ -34,7 +35,7 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 export const storage = getStorage(app);
 
 export const auth = getAuth();
@@ -363,6 +364,23 @@ export const findUserById = async (userId) => {
   }
 };
 
+export const findServerById = async (userId) => {
+  const userRef = doc(db, "servers", userId);
+
+  try {
+    const userSnapshot = await getDoc(userRef);
+    if (userSnapshot.exists()) {
+      return userSnapshot.ref;
+    } else {
+      console.log("Server not found.");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error finding user:", error);
+    return null;
+  }
+};
+
 // Function to remove a specific element from an array
 export const removeObjectFromArray = async (userRef, arrayField, objectId) => {
   try {
@@ -420,4 +438,122 @@ export const addNewFriendInUsers = async (id, obj) => {
   } catch (error) {
     console.error("Error:", error);
   }
+};
+
+export const getUid = async (server, id) => {
+  const q = query(collection(db, server), where("id", "==", id));
+
+  const querySnapshot = await getDocs(q);
+  const getUid = [];
+  const uid = querySnapshot.forEach((doc) => {
+    // doc.data() is never undefined for query doc snapshots
+    getUid.push(doc.id);
+  });
+  return getUid.toString();
+};
+
+export const listenForServerChanges = async (server, id) => {
+  return new Promise((resolve, reject) => {
+    const unsub = onSnapshot(doc(db, server, id), (doc) => {
+      if (doc.exists()) {
+        resolve(doc.data());
+      } else {
+        reject(new Error("Document does not exist"));
+      }
+    });
+  });
+};
+
+export const updateUserStatus = async (id, val) => {
+  const user = doc(db, "users", id);
+
+  // Set the "capital" field of the city 'DC'
+  await updateDoc(user, {
+    userOnline: val,
+  });
+};
+
+export const updateData = async (server, id, obj, arrayName) => {
+  // Reference to the specific channel document
+  const channelRef = doc(db, server, id);
+
+  try {
+    // Reference to the specific server document using the serverId
+    const serverRef = doc(db, server, id);
+
+    const serverSnapshot = await getDoc(channelRef);
+
+    if (serverSnapshot.exists()) {
+      // Update the "channels" array using the arrayUnion function
+      await updateDoc(serverRef, {
+        [arrayName]: arrayUnion(obj),
+      });
+
+      console.log("New channel added successfully!");
+    } else {
+      console.log("Server document does not exist.");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+  }
+};
+
+export const addNewCategoryChannel = async (id, channelsId, newChannelObj) => {
+  const docRef = doc(db, "servers", id);
+  const docSnap = await getDoc(docRef);
+
+  if (docSnap.exists()) {
+    const currentChannels = docSnap.data().channels || [];
+    const updated = currentChannels.map((data) => {
+      if (data.id === channelsId) {
+        return {
+          ...data,
+          channel: [...data.channel, newChannelObj],
+        };
+      }
+      return data;
+    });
+    await updateDoc(docRef, {
+      channels: updated,
+    });
+  } else {
+    console.log("No such document!");
+  }
+};
+
+export const removeObjectFromServer = async (userRef, arrayField, objectId) => {
+  try {
+    // Fetch the user's data
+    const userSnapshot = await getDoc(userRef);
+    if (userSnapshot.exists()) {
+      const userData = userSnapshot.data();
+
+      // Find the index of the object with the specified ID
+      const indexToRemove = userData[arrayField].findIndex(
+        (obj) => obj.id === objectId
+      );
+
+      if (indexToRemove !== -1) {
+        // Remove the object from the array
+        userData[arrayField].splice(indexToRemove, 1);
+
+        // Update the document with the modified array
+        await updateDoc(userRef, {
+          [arrayField]: userData[arrayField],
+        });
+
+        console.log("Object removed successfully.");
+      } else {
+        console.log("Object with specified ID not found in the array.");
+      }
+    } else {
+      console.log("User document does not exist.");
+    }
+  } catch (error) {
+    console.error("Error removing object:", error);
+  }
+};
+
+export const removeData = async (server, id) => {
+  await deleteDoc(doc(db, server, id));
 };
