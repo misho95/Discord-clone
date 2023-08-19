@@ -1,6 +1,10 @@
 import { userSignedIn } from "../utils/zustand";
 import { useState } from "react";
-import { signOutUser, updateUserStatus } from "../utils/firebase";
+import {
+  signOutUser,
+  updateUserStatus,
+  updateUserTime,
+} from "../utils/firebase";
 import { useNavigate } from "react-router-dom";
 
 const UsersProfile = () => {
@@ -14,7 +18,12 @@ const UsersProfile = () => {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
+  const waitUpdateUserTime = async (id) => {
+    await updateUserTime(id);
+  };
+
   const signOut = async () => {
+    waitUpdateUserTime(userAccount.id);
     await signOutUser();
     setNewUser(null);
     navigate("/signin");

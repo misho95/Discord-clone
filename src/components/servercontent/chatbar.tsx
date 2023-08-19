@@ -22,6 +22,7 @@ import {
   getUserInfoFromDataBase,
   addDataInServer,
   addNewMessageInDirectChat,
+  getServerTimestamp,
 } from "../../utils/firebase";
 import Message from "./message";
 import ServersList from "./servers.lists";
@@ -128,8 +129,8 @@ const ChatBar = () => {
       userName: currentUser.userName,
       userImg: currentUser.userImg,
       message: directChatMessage,
-      date: date.toString(),
       userType: "owner",
+      date: date.toString(),
     };
 
     await addNewMessageInDirectChat(directChatLoaded.id, addNewMessage);

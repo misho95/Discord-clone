@@ -20,6 +20,7 @@ import {
   updateDoc,
   arrayUnion,
   deleteDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import "firebase/firestore";
@@ -581,5 +582,20 @@ export const addNewMessageInDirectChat = async (id, newMessage) => {
     })
     .catch((error) => {
       console.error("Error checking channel document:", error);
+    });
+};
+
+export const updateUserTime = async (userId) => {
+  const userRef = doc(db, "users", userId);
+
+  // Update the lastOpenTime field with the current server timestamp
+  updateDoc(userRef, {
+    userTime: serverTimestamp(),
+  })
+    .then(() => {
+      console.log("Last open time updated successfully.");
+    })
+    .catch((error) => {
+      console.error("Error updating last open time:", error);
     });
 };

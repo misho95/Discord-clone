@@ -87,6 +87,7 @@ const SignUp = () => {
         joinedServers: [],
         userFriends: [],
         userOnline: false,
+        userTime: null,
       });
       navigate("/");
     } catch (error) {
