@@ -1,9 +1,15 @@
 import { activeServer, serverLoaded, channelOpen } from "../../utils/zustand";
+import { getUserImgUrl } from "../../utils/firebase";
 
 const ActiveBar = () => {
   const serverActive = activeServer((state) => state.active);
   const loadedServer = serverLoaded((state) => state.currentServer);
   const openChannel = channelOpen((state) => state.open);
+
+  const getImgUrlFromUser = async (id) => {
+    const url = await getUserImgUrl(id);
+    return url;
+  };
 
   if (serverActive === 0) {
     return (
@@ -31,6 +37,7 @@ const ActiveBar = () => {
       {loadedServer.users.map((usr) => {
         return (
           <div key={usr.id} className="flex gap-2 items-center">
+            {console.log(getImgUrlFromUser(usr.id))}
             <img src={usr.userImg} className="w-10 h-10  rounded-full" />
             <span
               className={`${
