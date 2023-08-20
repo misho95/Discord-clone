@@ -474,6 +474,15 @@ export const updateUserStatus = async (id, val) => {
   });
 };
 
+export const updateUserProfileImg = async (id, val) => {
+  const user = doc(db, "users", id);
+
+  // Set the "capital" field of the city 'DC'
+  await updateDoc(user, {
+    userImg: val,
+  });
+};
+
 export const updateData = async (server, id, obj, arrayName) => {
   // Reference to the specific channel document
   const channelRef = doc(db, server, id);
