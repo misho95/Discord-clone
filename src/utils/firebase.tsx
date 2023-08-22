@@ -608,20 +608,3 @@ export const updateUserTime = async (userId) => {
       console.error("Error updating last open time:", error);
     });
 };
-
-export const getUserImgUrl = async (id) => {
-  const docRef = doc(db, "users", id);
-  const docSnap = await getDoc(docRef);
-
-  let url = "";
-
-  if (docSnap.exists()) {
-    // console.log("Document data:", docSnap.data());
-    url = docSnap.data().userImg;
-    // return docSnap.data();
-  } else {
-    // docSnap.data() will be undefined in this case
-    console.log("No such document!");
-  }
-  return url;
-};
